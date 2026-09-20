@@ -1,0 +1,31 @@
+# Abaqus generated model and solver files
+*.cae
+*.odb
+*.inp
+*.dat
+*.msg
+*.sta
+*.com
+*.prt
+*.sim
+*.ipm
+*.lck
+*.log
+*.jnl
+*.rpy*
+*.023
+
+# Large regenerated element-field tables and figures
+output/FieldValue/*.txt
+!output/FieldValue/README.md
+output/pic/*
+!output/pic/README.md
+
+# Editor and MATLAB temporary files
+*.asv
+__pycache__/
+*.py[cod]
+.vscode/
+.idea/
+.matlab_prefs/
+.runtime/

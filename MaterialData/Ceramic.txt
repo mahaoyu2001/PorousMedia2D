@@ -1,0 +1,8 @@
+Density 4.52E-09
+E 100000
+v 0.33
+Scr 1000
+Eck_max 1e-3
+Cond 0.020
+Expan 5.9e-6
+SH 500000
