@@ -17,7 +17,7 @@ baseModelNameList = {'2DVoid_Vol05','2DVoid_Vol1','2DVoid_Vol2', ...
 vol = [0.5 1 2 3 5 7.5 10] / 100;
 
 methodFileTags = {'','_r0'};
-methodNames = {'Hard-core FEM','Poisson FEM'};
+methodNames = {'Hard-core FEM','Unconstrained FEM'};
 methodShortNames = {'Hard-core','r_min=0'};
 
 Sigma = [0;1;0];
@@ -28,7 +28,7 @@ outputFrameTag = 2;
 
 % Publication-oriented vertical-axis limits for S11, S22 and S12.
 varYLim = [0 0.045; 0 0.20; 0 0.04];
-skeYLim = [-10 10; -10 10; -10 10];
+skeYLim = [-1.5 1.5; -1.5 1.5; -1.5 1.5];
 kurYLim = [0 100; 0 115; 0 90];
 
 scriptDir = fileparts(mfilename('fullpath'));

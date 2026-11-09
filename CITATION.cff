@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+message: "Please cite this software version when reproducing its results."
+title: "PorousMedia2D"
+type: software
+authors:
+  - family-names: Ma
+    given-names: Haoyu
+version: 2.0.0
+date-released: 2026-11-09
+license: MIT
+url: "https://github.com/mahaoyu2001/PorousMedia2D"
+repository-code: "https://github.com/mahaoyu2001/PorousMedia2D"

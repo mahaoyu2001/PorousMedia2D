@@ -1,143 +1,119 @@
 # PorousMedia2D
 
-This repository contains the minimal Abaqus–MATLAB workflow used to reproduce
-representative two-dimensional porous-media examples and the pore-exclusion
-sensitivity analysis reported in the accompanying work.
+Version **2.0.0** accompanies the second revision of manuscript
+**AMMOD-D-26-03080**, *Higher-order statistical characterization of stress
+heterogeneity induced by random pores*. Versioned source:
+https://github.com/mahaoyu2001/PorousMedia2D/releases/tag/v2.0.0.
 
-The public package intentionally contains source code, fixed pore-centre input
-data, material parameters, analytical coefficients, and compact processed
-statistics. Large generated files such as `.cae`, `.odb`, and element-level
-field tables are excluded and can be regenerated with the workflow below.
+The package includes Abaqus scripts, fixed pore-center inputs, material
+parameters, corrected MATLAB programs and compact processed FEM results.
+Large CAE/ODB files and raw fields are excluded and can be regenerated.
 
-## Reproducible examples
+## Analytical convention
 
-1. **Hard-core FEM model**: circular pore centres have a minimum separation of
-   `2a`, where `a` is the pore radius.
-2. **Poisson (`r_min = 0`) FEM model**: no minimum centre separation is imposed
-   and circular pores may overlap.
-
-Five fixed realizations (`a`–`e`) are provided for porosities 0.5%, 1%, 2%, 3%,
-5%, 7.5%, and 10%. The files are fixed numerical inputs rather than random
-seeds, so every user starts from the same geometry.
-
-## Repository layout
+The isolated-pore coefficients `K_in` are unchanged. With the dilute
+identification `eta=rho*A0 approximately f`, the matrix-conditioned Poisson
+disturbance model uses:
 
 ```text
-PorousMedia2D/
-├── MaterialData/                 material properties (`key value` format)
-├── ModelData/                    pore-centre coordinates (`x y` per row)
-├── python script/
-│   ├── Modeling/                 geometry, mesh, loading, and job creation
-│   └── PostProcessing/           ODB-to-text field export
-└── output/                       MATLAB statistics and plotting scripts
+mean_i     = Sigma_i/(1-f)
+variance_i = f*K_i2/(1-f)^2
+skewness_i = K_i3/(sqrt(f)*K_i2^(3/2))
+kurtosis_i = 3 + K_i4/(f*K_i2^2)
 ```
 
-## Software
+The background `Sigma/(1-f)` remains a mean-field approximation. `K_i3=0`
+does not establish exact FEM symmetry. Accuracy depends on porosity, component
+and statistic. The Gaussian predictions use the analytical mean and variance
+shared with GND; Fig. 2(c)'s descriptive reference instead uses FEM moments.
 
-- Abaqus/CAE 2022 (Abaqus Python and the Standard solver)
-- MATLAB R2020b or newer
-- MATLAB Symbolic Math Toolbox for the analytical prediction
+## Layout
 
-The Abaqus scripts retain Python 2.7-compatible syntax. They must be run with
-the Abaqus interpreter, not a system Python installation.
-
-## 1. Build, mesh, load, and solve the RVE models
-
-Open `python script/Modeling/Run2D_Geom_Batch.py` and edit only its **USER
-SETTINGS** block. The default reproduces the five hard-core 5% realizations:
-
-```python
-MODEL_NAME_LIST = ['2DVoid_Vol5']
-LABEL_LIST = ['a', 'b', 'c', 'd', 'e']
+```text
+MaterialData/                       matrix parameters
+ModelData/                          fixed pore-center inputs
+python script/Modeling/             Abaqus geometry, mesh, loading, jobs
+python script/PostProcessing/       ODB -> S11 S22 S12 EVOL export
+output/cal_stress_statistics.m      corrected analytical moments
+output/Round2_Minimal_Correction/    moment/distribution/tail workflows
+output/Round2_Tail_Validation/       Campbell and four-way tail comparisons
+output/Pair_Correlation_Prefactor/   hard-core prefactor FFT check
+output/Symbolic_Derivation/          optional Eq. (17) symbolic derivation
+output/Style_Templates/             original standalone figure settings
+tests/                             release verification
 ```
 
-For the overlap-allowed comparison, change the base name to:
+## Software and quick reproduction
 
-```python
-MODEL_NAME_LIST = ['2DVoid_Vol5_r0']
+- Abaqus/CAE 2022 and Standard for FEM. Scripts retain Python 2.7-compatible
+  syntax and must use the Abaqus interpreter.
+- MATLAB R2023a for the tested post-processing workflow. Core coefficients,
+  moments, GND and Campbell functions need no Symbolic Math Toolbox; only
+  the optional symbolic derivation requires it.
+
+Run from the repository root in MATLAB:
+
+```matlab
+addpath('tests')
+test_release
+addpath('output/Round2_Minimal_Correction/Programs','-begin')
+run_round2('check')
+run_round2('tables')
+run_round2('single')
+run_round2('distributions')
+addpath('output/Round2_Tail_Validation/Programs','-begin')
+run_tail_validation('plots')
 ```
 
-From the repository root, run:
+These commands use bundled processed statistics and compact field metrics;
+they do not run Abaqus. Workflow READMEs explain raw-field processing and
+Campbell inversion. Paths default to this repository. Optionally set
+`POROUSMEDIA_OUTPUT_DIR` to an external FEM output directory containing the
+input workbooks and `FieldValue` folder.
+
+## FEM reproduction
+
+Five fixed realizations a-e are supplied at target geometric porosities
+0.5%, 1%, 2%, 3%, 5%, 7.5%, and 10%. Hard-core inputs exclude overlap.
+Unconstrained (`r0`) inputs permit overlap/coalescence and use more pores
+to compensate expected coverage loss. Fixed-count numerical realizations
+are not identical to an infinite stationary Poisson process. Supplementary
+Material 3 reports realized-porosity differences at common target values.
+
+Edit **USER SETTINGS** in `python script/Modeling/Run2D_Geom_Batch.py`.
+The default is five hard-core 5% realizations; select base name
+`2DVoid_Vol5_r0` for the overlap-allowed case. From the repository root:
 
 ```powershell
 abaqus cae noGUI="python script\Modeling\Run2D_Geom_Batch.py"
 ```
 
-The CAE window is not required. By default, the script creates geometry and
-mesh checkpoints, writes Abaqus input files, and saves one final CAE database
-containing all requested labels. Set `SUBMIT_JOBS = True` to launch the solver.
+The runner builds geometry/mesh checkpoints and input files. Set
+`SUBMIT_JOBS=True` explicitly to solve. Settings are a unit-square RVE,
+pore radius 0.005, nominal CPE3 mesh size 0.0004, small-deformation plane
+strain and uniform normal tractions. Inputs include periodic pore copies;
+the finite RVE solve uses the stated traction conditions. Pores may intersect
+the boundary. A coarser installation test changes the resulting statistics.
 
-The reported model settings are defined in one place in the runner:
-
-- RVE size: `1.0 x 1.0`
-- pore radius: `0.005`
-- CPE3 mesh size: `0.0004`
-- vertical resultant: `1.0 x RVE width`
-- plane-strain, small-deformation static analysis
-
-The reported mesh is computationally expensive. A larger mesh size can be used
-for a quick installation test, but its statistics should not be compared with
-the bundled reference results.
-
-If execution stops after geometry or meshing, set `START_STAGE` to `mesh` or
-`load`, respectively. The runner then opens the corresponding checkpoint
-instead of repeating the completed stages.
-
-## 2. Export element fields
-
-After the jobs finish, set the same model names in
-`python script/PostProcessing/ExtractLE_Vol.py`, then run:
+Set matching model names in the field exporter, then run:
 
 ```powershell
 abaqus python "python script\PostProcessing\ExtractLE_Vol.py"
 ```
 
-For each ODB, the script writes
-`output/FieldValue/<job-name>_S2.txt`. Its columns are:
+Each `output/FieldValue/<job>_S2.txt` contains `S11 S22 S12 EVOL`, with
+integration-area weight EVOL. Corrected readers accept its optional header.
+The two original comparison entry scripts in `output` remain available and
+call corrected core moments. Their `auto` mode uses caches without raw files.
 
-```text
-S11  S22  S12  EVOL
-```
+## Data, citation and license
 
-`EVOL` is the element area used as the statistical weight.
+Measured-statistics workbooks, per-realization metrics and CSV comparisons
+support reproduction without large ODB files. Reference statistics for
+additional loading/15-20% studies do not imply their raw solver outputs are
+included. SD is sample scatter across five realizations, not a confidence
+interval. Relative errors use the FEM mean as reference.
 
-## 3. Reproduce the figures
-
-Run either MATLAB entry script:
-
-- `output/Deformation_Statistic_Nmoment_Geom_r0_Comparison_ErrorBand.m`
-  compares analytical predictions, hard-core FEM, and Poisson FEM over all
-  supplied porosities.
-- `output/Deformation_Statistic_Nmoment_MinDistance.m` isolates the 5% case and
-  plots variance and kurtosis versus normalized minimum centre distance.
-
-Both scripts expose `DATA_SOURCE = 'auto' | 'field' | 'cache'` near the top.
-`auto` recomputes statistics when the complete raw field set exists; otherwise
-it reads the bundled processed Excel workbook. `field` also refreshes that
-workbook. Figures are written to `output/pic/` as PNG and MATLAB FIG files.
-
-## Input naming convention
-
-`ModelData/<base-name>_<label>.txt` must match the names configured in the
-Abaqus runner. For example:
-
-```text
-2DVoid_Vol5_a.txt       hard-core, 5%, realization a
-2DVoid_Vol5_r0_a.txt    r_min = 0, 5%, realization a
-```
-
-All quantities use one internally consistent unit system. With the supplied
-material file, stress is expressed in the same unit as its elastic modulus.
-
-## Generated files
-
-The `.gitignore` excludes solver databases, checkpoints, logs, extracted raw
-field tables, and generated figures. The compact processed workbooks in
-`output/` are intentionally versioned so the published plots can be recreated
-without distributing very large ODB files.
-
-## Citation and license
-
-Please cite the associated paper and the archived repository record. Before
-public release, add the final paper citation, Zenodo DOI, authors, and the
-license selected by the repository owner.
+Cite tag **v2.0.0** to identify this source version. `CITATION.cff` supplies
+metadata. This release does not claim a separately registered DOI.
+License: MIT.

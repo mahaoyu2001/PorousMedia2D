@@ -29,3 +29,10 @@ __pycache__/
 .idea/
 .matlab_prefs/
 .runtime/
+
+# Generated round-2 outputs; reference caches and CSVs remain versioned.
+output/Round2_*/Results/Figures/
+output/Round2_*/Results/Logs/
+output/Round2_*/Results/Tables/*.xlsx
+output/Round2_*/Results/Tables/*.mat
+tests/Results/
